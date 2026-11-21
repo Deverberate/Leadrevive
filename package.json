@@ -6,20 +6,30 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types scripts/test-leadrevive.mjs",
+    "test:e2e": "node scripts/e2e-api-test.mjs",
+    "deploy:surge": "mv app/api ./_api_backup && next build && mv ./_api_backup app/api && cp out/app.html out/app/index.html && cp out/index.html out/200.html && npx surge out leadrevive.surge.sh"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.77.0",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "tailwind-merge": "^3.7.1",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "localtunnel": "^2.0.2",
     "tailwindcss": "4.3.3",
     "typescript": "^5"
   }

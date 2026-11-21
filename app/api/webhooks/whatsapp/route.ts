@@ -6,6 +6,7 @@ import fs from 'fs';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'leadrevive_verify_token_2026';
 
 function logDebug(msg: string) {
+  console.log(`[LeadRevive] ${msg}`);
   try {
     fs.appendFileSync('/tmp/leadrevive_webhook.log', `[${new Date().toISOString()}] ${msg}\n`);
   } catch {}
@@ -35,6 +36,9 @@ async function sendWhatsAppTextMessage(to: string, text: string) {
     });
     const resText = await res.text();
     logDebug(`sendWhatsAppTextMessage response status ${res.status}: ${resText}`);
+    if (!res.ok) {
+      console.error(`[WhatsApp API Error ${res.status}] ${resText}`);
+    }
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     logDebug(`Failed to send WhatsApp message: ${errMsg}`);
@@ -95,6 +99,7 @@ async function sendWhatsAppInteractiveButtons(
 
     // If interactive fails for any reason, fallback to text
     if (!res.ok) {
+      console.error(`[WhatsApp API Interactive Error ${res.status}] ${resText}`);
       logDebug(`Interactive failed, falling back to text message`);
       await sendWhatsAppTextMessage(to, bodyText);
     }

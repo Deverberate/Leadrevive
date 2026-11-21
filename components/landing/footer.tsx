@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           <p className="text-[11px]">
-            &copy; 2026 LeadRevive Inc. Built for emergency trade pros.
+            &copy; 2026 LeadRevive UK Ltd. Built for emergency trade pros.
           </p>
         </div>
       </div>

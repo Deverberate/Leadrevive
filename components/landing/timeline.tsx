@@ -103,7 +103,7 @@ export function HowItWorks() {
                 Plumbers, Electricians, Locksmiths & HVAC Specialists
               </h4>
               <p className="text-xs sm:text-sm text-slate-300">
-                Average ticket $300–$1,500. When their home is flooding or freezing, they won’t leave a voicemail. They hire whoever answers first.
+                Average job value £250–£1,200+. When their home is flooding or freezing, they won’t leave a voicemail. They hire whoever answers first.
               </p>
             </div>
 

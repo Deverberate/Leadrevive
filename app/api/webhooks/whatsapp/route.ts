@@ -41,6 +41,70 @@ async function sendWhatsAppTextMessage(to: string, text: string) {
   }
 }
 
+async function sendWhatsAppInteractiveButtons(
+  to: string,
+  bodyText: string,
+  buttons: Array<{ id: string; title: string }>,
+  headerText?: string,
+  footerText?: string
+) {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  logDebug(`sendWhatsAppInteractiveButtons to: ${to}, token present: ${!!token}, phoneId: ${phoneId}`);
+  if (!token || !phoneId) return;
+
+  const cleanTo = to.replace(/[^0-9]/g, '');
+  const interactiveObj: Record<string, unknown> = {
+    type: 'button',
+    body: { text: bodyText },
+    action: {
+      buttons: buttons.slice(0, 3).map((b) => ({
+        type: 'reply',
+        reply: {
+          id: b.id,
+          title: b.title.slice(0, 20),
+        },
+      })),
+    },
+  };
+
+  if (headerText) {
+    interactiveObj.header = { type: 'text', text: headerText.slice(0, 60) };
+  }
+  if (footerText) {
+    interactiveObj.footer = { text: footerText.slice(0, 60) };
+  }
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanTo,
+        type: 'interactive',
+        interactive: interactiveObj,
+      }),
+    });
+    const resText = await res.text();
+    logDebug(`sendWhatsAppInteractiveButtons response status ${res.status}: ${resText}`);
+
+    // If interactive fails for any reason, fallback to text
+    if (!res.ok) {
+      logDebug(`Interactive failed, falling back to text message`);
+      await sendWhatsAppTextMessage(to, bodyText);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logDebug(`Failed to send WhatsApp interactive buttons: ${errMsg}`);
+    await sendWhatsAppTextMessage(to, bodyText);
+  }
+}
+
 /**
  * Meta WhatsApp Cloud API Webhook Verification (GET)
  */
@@ -99,18 +163,47 @@ export async function POST(req: NextRequest) {
       let actionType = 'standard_quote';
       let replyText = '';
 
-      if (buttonId.includes('emergency') || buttonId.includes('leak') || buttonId.includes('urgent')) {
+      if (buttonId.includes('review') || buttonId === 'btn_review_options') {
+        actionType = 'review_request';
+        // Send the main options popup/card again
+        await sendWhatsAppInteractiveButtons(
+          from,
+          '📋 *Review Your Request Options:*\n\nSelect your emergency priority or required service below:',
+          [
+            { id: 'btn_emergency', title: '🚨 Emergency Flood' },
+            { id: 'btn_boiler', title: '🔥 Boiler Failure' },
+            { id: 'btn_quote', title: '💬 Get a Quote' },
+          ],
+          '⚡ LeadRevive Dispatch Options',
+          'Tap an option to dispatch'
+        );
+
+        return NextResponse.json({
+          success: true,
+          handled: 'interactive_button',
+          from,
+          buttonId,
+          buttonTitle,
+          actionType,
+          timestamp: new Date().toISOString(),
+        });
+      } else if (buttonId.includes('confirm') || buttonId === 'btn_confirm') {
+        actionType = 'confirmed';
+        replyText = '✅ Request confirmed! Dave has received your details and is preparing dispatch. Send a photo or street address anytime if needed.';
+        await sendWhatsAppTextMessage(from, replyText);
+      } else if (buttonId.includes('emergency') || buttonId.includes('leak') || buttonId.includes('urgent')) {
         actionType = 'dispatch_emergency';
         replyText = '🚨 Priority 1 Emergency logged! Dave is 10-15 mins away. What is your street address or postcode?';
+        await sendWhatsAppTextMessage(from, replyText);
       } else if (buttonId.includes('boiler') || buttonId.includes('book') || buttonId.includes('slot')) {
         actionType = 'schedule_service';
         replyText = '📅 Scheduled service logged. We have arrival windows at 16:30 today or 08:30 tomorrow. What is your postcode?';
+        await sendWhatsAppTextMessage(from, replyText);
       } else {
         actionType = 'details_requested';
         replyText = 'Thanks! Please reply with a short description or photo of what needs fixing.';
+        await sendWhatsAppTextMessage(from, replyText);
       }
-
-      await sendWhatsAppTextMessage(from, replyText);
 
       return NextResponse.json({
         success: true,
@@ -131,14 +224,69 @@ export async function POST(req: NextRequest) {
     // 2. Handle Text Messages with Intent Extractor
     if (messageType === 'text') {
       const textObj = message.text as { body?: string } | undefined;
-      const textContent = textObj?.body || '';
+      const textContent = (textObj?.body || '').trim();
+
+      // Check if user is replying to "Do you want to review your request?"
+      const isReviewAffirmative = /^(yes|yeah|yep|review|options?|change|check|edit|update)/i.test(textContent);
+      const isConfirmNegative = /^(no|nah|nope|confirm|all good|good|ok|thanks?|fine)/i.test(textContent);
+
+      if (isReviewAffirmative) {
+        // Send the interactive popup/card again!
+        await sendWhatsAppInteractiveButtons(
+          from,
+          '📋 *Review Your Request Options:*\n\nSelect your emergency priority or required service below:',
+          [
+            { id: 'btn_emergency', title: '🚨 Emergency Flood' },
+            { id: 'btn_boiler', title: '🔥 Boiler Failure' },
+            { id: 'btn_quote', title: '💬 Get a Quote' },
+          ],
+          '⚡ LeadRevive Dispatch Options',
+          'Tap an option to dispatch'
+        );
+
+        return NextResponse.json({
+          success: true,
+          handled: 'text_review_triggered',
+          from,
+          text: textContent,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      if (isConfirmNegative) {
+        const confirmText = '✅ Request confirmed! Dave has received your details and is on it. Send a photo or address pin anytime if needed.';
+        await sendWhatsAppTextMessage(from, confirmText);
+
+        return NextResponse.json({
+          success: true,
+          handled: 'text_confirmed',
+          from,
+          text: textContent,
+          dispatchReply: confirmText,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Initial or general inquiry: extract intent and send acknowledgment with review buttons
       const extracted = await extractLeadIntent(textContent);
 
-      const replyText = extracted.urgency === 'EMERGENCY'
-        ? `🚨 Understood — Priority 1 dispatched! Dave is on-site nearby. We have your details (${extracted.location || 'London'}). Expect a call in 60s.`
-        : `Thank you! Dave has received your request: "${extracted.issueSummary}". He will contact you shortly.`;
+      const acknowledgment = extracted.urgency === 'EMERGENCY'
+        ? `🚨 Understood — Priority 1 logged! Dave is on-site nearby. We noted: "${extracted.issueSummary}".`
+        : `Thank you! Dave has received your request: "${extracted.issueSummary}".`;
 
-      await sendWhatsAppTextMessage(from, replyText);
+      const promptBody = `${acknowledgment}\n\nDo you want to review or update your request?`;
+
+      // Send with interactive review buttons!
+      await sendWhatsAppInteractiveButtons(
+        from,
+        promptBody,
+        [
+          { id: 'btn_review_options', title: 'Review Request' },
+          { id: 'btn_confirm', title: 'All Good 👍' },
+        ],
+        '⚡ LeadRevive Dispatch',
+        'Dave | Emergency Trades'
+      );
 
       return NextResponse.json({
         success: true,
@@ -146,7 +294,7 @@ export async function POST(req: NextRequest) {
         from,
         text: textContent,
         extractedIntent: extracted,
-        dispatchReply: replyText,
+        dispatchReply: promptBody,
         contractorAlert: {
           to: '+44 7911 882910',
           summary: `${extracted.urgency} from ${from}: ${extracted.issueSummary}`,
@@ -163,7 +311,7 @@ export async function POST(req: NextRequest) {
       const caption = imageObj?.caption || 'Customer sent a photo of damage/equipment';
       const extracted = await extractLeadIntent(caption);
 
-      const dispatchReply = 'Photo received! Dave has been alerted and is reviewing the image now. Expect a call in 60 seconds.';
+      const dispatchReply = '📸 Photo received! Dave has been alerted and is reviewing the image now. Expect a call in 60 seconds.';
       await sendWhatsAppTextMessage(from, dispatchReply);
 
       return NextResponse.json({
@@ -185,7 +333,7 @@ export async function POST(req: NextRequest) {
     if (messageType === 'location') {
       const locObj = message.location as { latitude?: number; longitude?: number; name?: string; address?: string } | undefined;
       const locStr = locObj?.address || locObj?.name || `${locObj?.latitude}, ${locObj?.longitude}`;
-      const dispatchReply = `Location received (${locStr})! Dave is calculating his route now.`;
+      const dispatchReply = `📍 Location received (${locStr})! Dave is calculating his route now.`;
       await sendWhatsAppTextMessage(from, dispatchReply);
 
       return NextResponse.json({

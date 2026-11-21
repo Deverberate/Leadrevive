@@ -35,7 +35,7 @@ export function Header() {
             How It Works
           </a>
           <a href="#pricing" className="hover:text-slate-900 transition-colors">
-            $0 Pilot Pricing
+            £0 Pilot Pricing
           </a>
           <a href="#faq" className="hover:text-slate-900 transition-colors">
             FAQ

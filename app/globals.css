@@ -43,6 +43,24 @@ body {
   }
 }
 
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes radarWave {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
 .animate-pulse-glow {
   animation: pulseGlow 2.5s infinite;
+}
+
+.animate-float {
+  animation: subtleFloat 3.5s ease-in-out infinite;
+}
+
+.animate-radar {
+  animation: radarWave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
 }

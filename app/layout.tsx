@@ -17,7 +17,11 @@ export const metadata: Metadata = {
   description: "Recover missed calls into high-ticket WhatsApp bookings in under 5 seconds. Designed for emergency plumbers, electricians, locksmiths, and HVAC pros.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"

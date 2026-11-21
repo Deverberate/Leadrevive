@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   ArrowRight,
   Calendar,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Globe
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { normalizeE164, formatPhoneForDialer } from '@/lib/phone-utils';
@@ -153,6 +154,18 @@ export function PhoneSimulator() {
     setInteractionPath('IDLE');
     setSelectedSlot(null);
     setChatMessages([]);
+  };
+
+  const handleQuickPresetLaunch = (preset: Preset) => {
+    setSelectedPreset(preset);
+    setPhoneNumber(preset.phone);
+    setCallerName(preset.name);
+    setConfirmedAddress(preset.address);
+    setContractorAlert(false);
+    setInteractionPath('IDLE');
+    setSelectedSlot(null);
+    setTimerSeconds(1);
+    setStage('RINGING');
   };
 
   // Helper to append message
@@ -382,28 +395,93 @@ export function PhoneSimulator() {
 
   return (
     <div className="flex flex-col items-center w-full max-w-sm sm:max-w-md mx-auto">
-      {/* Smartphone Outer Chassis */}
-      <div className="relative w-full aspect-[9/18.5] max-h-[720px] bg-slate-900 rounded-[50px] p-3 shadow-2xl ring-1 ring-slate-900/20 shadow-slate-900/40 select-none">
-        {/* Subtle Outer Metal Bezel Gradient */}
-        <div className="absolute inset-0 rounded-[50px] ring-2 ring-white/10 pointer-events-none" />
+      {/* 1-Click Scenario Quick Launch Bar Above Phone */}
+      <div className="w-full mb-3 bg-white/90 backdrop-blur-md rounded-2xl p-2.5 border border-slate-200/80 shadow-xs">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            1-Tap Demo Scenarios
+          </span>
+          <span className="text-[10px] text-slate-400 font-medium">Click to trigger instant call drop</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {PRESETS.map((p) => {
+            const isCurrent = selectedPreset.name === p.name && stage !== 'READY';
+            return (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => handleQuickPresetLaunch(p)}
+                className={`p-2 rounded-xl text-left border transition-all text-xs flex flex-col justify-between active:scale-95 ${
+                  isCurrent
+                    ? 'bg-[#0071E3] text-white border-[#0071E3] shadow-md shadow-blue-500/20'
+                    : 'bg-slate-50 hover:bg-white border-slate-200 text-slate-800 hover:border-blue-300'
+                }`}
+              >
+                <span className="font-bold text-[11px] truncate">{p.name.split(' ')[0]}</span>
+                <span className={`text-[10px] font-mono font-bold ${
+                  isCurrent ? 'text-blue-100' : 'text-emerald-600'
+                }`}>
+                  £{p.jobValue}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Smartphone Outer Titanium Chassis */}
+      <div className="relative w-full aspect-[9/18.5] max-h-[720px] bg-slate-950 rounded-[50px] p-2.5 shadow-2xl ring-1 ring-slate-800 shadow-slate-900/50 select-none border-4 border-slate-800">
+        {/* Subtle Titanium Metallic Highlight Rim */}
+        <div className="absolute inset-0 rounded-[46px] ring-1 ring-white/15 pointer-events-none" />
+
+        {/* Gloss Screen Glare Reflection */}
+        <div className="absolute inset-0 rounded-[44px] bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none z-30" />
 
         {/* Side Hardware Buttons */}
-        <div className="absolute -left-1 top-24 w-1 h-10 bg-slate-700 rounded-l-md" />
-        <div className="absolute -left-1 top-38 w-1 h-14 bg-slate-700 rounded-l-md" />
-        <div className="absolute -left-1 top-56 w-1 h-14 bg-slate-700 rounded-l-md" />
-        <div className="absolute -right-1 top-32 w-1 h-16 bg-slate-700 rounded-r-md" />
+        <div className="absolute -left-1.5 top-24 w-1 h-10 bg-slate-700 rounded-l-md" />
+        <div className="absolute -left-1.5 top-38 w-1 h-14 bg-slate-700 rounded-l-md" />
+        <div className="absolute -left-1.5 top-56 w-1 h-14 bg-slate-700 rounded-l-md" />
+        <div className="absolute -right-1.5 top-32 w-1 h-16 bg-slate-700 rounded-r-md" />
 
         {/* Inner Screen Canvas */}
         <div className="relative w-full h-full bg-[#FAFAFC] rounded-[40px] overflow-hidden flex flex-col font-sans">
           
-          {/* iOS Top Status Bar & Dynamic Island */}
-          <div className="relative z-30 pt-3 px-6 pb-2 flex items-center justify-between text-xs font-semibold text-slate-800 bg-white/70 backdrop-blur-md border-b border-slate-100">
+          {/* iOS Top Status Bar & State-Aware Dynamic Island */}
+          <div className="relative z-40 pt-3 px-6 pb-2 flex items-center justify-between text-xs font-semibold text-slate-800 bg-white/80 backdrop-blur-md border-b border-slate-100">
             <span>09:41</span>
             
             {/* Dynamic Island Pill */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-2.5 w-24 h-6 bg-black rounded-full flex items-center justify-center space-x-1.5 px-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-950/80 ring-1 ring-slate-800" />
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className={`absolute left-1/2 -translate-x-1/2 top-2.5 h-6 bg-black rounded-full flex items-center justify-center space-x-1.5 px-3 transition-all duration-300 shadow-sm ${
+              stage === 'RINGING'
+                ? 'w-36 bg-slate-950 ring-1 ring-emerald-500/60'
+                : stage === 'MISSED'
+                ? 'w-32 bg-red-950 ring-1 ring-red-500/60'
+                : stage === 'FORWARDING'
+                ? 'w-36 bg-emerald-950 ring-1 ring-emerald-500/60'
+                : 'w-24'
+            }`}>
+              {stage === 'RINGING' ? (
+                <div className="flex items-center gap-1.5 text-[9px] text-emerald-400 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Ringing...</span>
+                </div>
+              ) : stage === 'MISSED' ? (
+                <div className="flex items-center gap-1.5 text-[9px] text-red-400 font-mono">
+                  <PhoneMissed className="w-2.5 h-2.5 text-red-400" />
+                  <span>Missed</span>
+                </div>
+              ) : stage === 'FORWARDING' ? (
+                <div className="flex items-center gap-1.5 text-[9px] text-emerald-400 font-mono">
+                  <Zap className="w-2.5 h-2.5 text-emerald-400" />
+                  <span>Routing *61*</span>
+                </div>
+              ) : (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-slate-950/80 ring-1 ring-slate-800" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                </>
+              )}
             </div>
 
             <div className="flex items-center space-x-1.5 text-slate-800">
@@ -420,26 +498,26 @@ export function PhoneSimulator() {
             {/* STAGE: READY / SETUP */}
             {stage === 'READY' && (
               <div className="flex-1 flex flex-col justify-between p-5 text-slate-800">
-                <div className="space-y-4 pt-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200/60 rounded-full text-blue-700 text-xs font-semibold">
+                <div className="space-y-3.5 pt-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200/60 rounded-full text-[#0071E3] text-xs font-semibold">
                     <Sparkles className="w-3.5 h-3.5" />
                     Interactive Simulator
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
-                      Simulate a Missed Emergency Call
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">
+                      Experience the &lt;3s WhatsApp Recovery
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      Choose an emergency scenario or type any number to test sub-3s recovery.
+                      Choose an emergency scenario or enter your own number to test.
                     </p>
                   </div>
 
                   {/* Scenario Presets */}
-                  <div className="space-y-2 pt-1">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Select Emergency Scenario
+                  <div className="space-y-1.5 pt-0.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Emergency Scenarios
                     </label>
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-1 gap-1.5">
                       {PRESETS.map((p) => {
                         const isSelected = selectedPreset.name === p.name;
                         return (
@@ -473,35 +551,46 @@ export function PhoneSimulator() {
                     </div>
                   </div>
 
+                  {/* International Calling Callout Box */}
+                  <div className="p-2.5 bg-blue-50/80 rounded-xl border border-blue-100 text-[11px] text-blue-900 flex items-start gap-2">
+                    <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold block text-[11px]">International Numbers Supported</span>
+                      <span className="text-[10px] text-blue-700 leading-tight block">
+                        Enter any UK (+44), India (+91), or US (+1) mobile number to test the real WhatsApp flow.
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Phone & Name input */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Caller Phone
                       </label>
                       <input
                         type="text"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-mono font-medium rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#0071E3]"
+                        className="w-full px-2.5 py-1.5 text-xs font-mono font-medium rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#0071E3]"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Caller Name
                       </label>
                       <input
                         type="text"
                         value={callerName}
                         onChange={(e) => setCallerName(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#0071E3]"
+                        className="w-full px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#0071E3]"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Trigger Button */}
-                <div className="pt-4 pb-2">
+                <div className="pt-3 pb-1">
                   <button
                     type="button"
                     onClick={startSimulation}
@@ -510,7 +599,7 @@ export function PhoneSimulator() {
                     <PhoneMissed className="w-4 h-4 text-white" />
                     Simulate Missed Call Drop
                   </button>
-                  <p className="text-[10px] text-center text-slate-400 mt-2">
+                  <p className="text-[10px] text-center text-slate-400 mt-1.5">
                     Tests carrier conditional forwarding (*61*) to WhatsApp Cloud API
                   </p>
                 </div>
@@ -520,15 +609,19 @@ export function PhoneSimulator() {
             {/* STAGE: RINGING (< 1.0s) */}
             {stage === 'RINGING' && (
               <div className="flex-1 flex flex-col justify-between items-center p-6 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 text-white animate-fade-in">
-                <div className="pt-8 text-center space-y-2">
-                  <div className="w-20 h-20 mx-auto rounded-full bg-slate-700/60 ring-2 ring-white/20 flex items-center justify-center shadow-lg">
-                    <PhoneIncoming className="w-9 h-9 text-emerald-400 animate-pulse" />
+                <div className="pt-8 text-center space-y-3">
+                  <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                    <div className="absolute -inset-2 rounded-full bg-emerald-500/10 animate-pulse" />
+                    <div className="w-20 h-20 rounded-full bg-slate-700/80 ring-2 ring-white/30 flex items-center justify-center shadow-xl relative z-10">
+                      <PhoneIncoming className="w-9 h-9 text-emerald-400 animate-pulse" />
+                    </div>
                   </div>
                   <h4 className="text-xl font-bold tracking-tight text-white">{callerName || 'Emergency Caller'}</h4>
                   <p className="text-xs text-slate-300 font-mono">{phoneNumber}</p>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-medium mt-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-medium">
                     <Clock className="w-3.5 h-3.5 animate-spin" />
-                    Contractor on ladder • Ringing...
+                    Contractor on tools • Ringing...
                   </div>
                 </div>
 
@@ -633,29 +726,32 @@ export function PhoneSimulator() {
                 
                 {/* CONTRACTOR LIVE NOTIFICATION BANNER (Triggered on Booking) */}
                 {contractorAlert && (
-                  <div className="absolute top-2 left-3 right-3 z-30 p-2.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-emerald-500/40 animate-bounce duration-1000 flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
-                      <Zap className="w-4 h-4 text-white" />
+                  <div className="absolute top-2 left-2 right-2 z-40 p-3 bg-slate-950/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-emerald-500/50 animate-float flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-emerald-400">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        ⚡ CONTRACTOR ALERT • 2.4s RECOVERY
+                      </span>
+                      <span className="text-slate-400 font-mono">Just now</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-emerald-400">
-                        <span>⚡ DAVE MORRISON&apos;S PHONE</span>
-                        <span>Just now</span>
-                      </div>
-                      <p className="text-[11px] text-slate-200 font-medium truncate">
-                        🚨 NEW EMERGENCY LEAD: {callerName} ({phoneNumber})
+                    <div>
+                      <p className="text-xs font-bold text-white truncate">
+                        🚨 {selectedPreset.initialReply}: {callerName} ({phoneNumber})
                       </p>
-                      <p className="text-[10px] text-slate-400 truncate">
-                        {confirmedAddress} • Est. £{selectedPreset.jobValue}
+                      <p className="text-[11px] text-slate-300 truncate">
+                        📍 {confirmedAddress}
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <a
-                          href={formatPhoneForDialer(phoneNumber)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg inline-flex items-center gap-1"
-                        >
-                          📞 Tap to Call
-                        </a>
-                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+                      <span className="text-xs font-mono font-bold text-emerald-400">
+                        Est. £{selectedPreset.jobValue} Retained
+                      </span>
+                      <a
+                        href={formatPhoneForDialer(phoneNumber)}
+                        className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 text-xs font-bold rounded-lg inline-flex items-center gap-1 shadow-sm transition-all"
+                      >
+                        📞 1-Tap Call Dave
+                      </a>
                     </div>
                   </div>
                 )}
@@ -903,6 +999,14 @@ export function PhoneSimulator() {
                         <span>📝 &quot;Water dripping through ceiling spotlight, SW8 2JU&quot;</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
+                    </div>
+                  )}
+
+                  {/* 5. Confirmed Celebration Banner */}
+                  {interactionPath === 'CONFIRMED' && (
+                    <div className="my-2 p-2.5 bg-emerald-600 text-white rounded-xl text-center text-xs font-bold shadow-md shadow-emerald-600/30 animate-pulse-glow flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>£{selectedPreset.jobValue} Job Secured in 2.8s • Saved from Competitors!</span>
                     </div>
                   )}
 

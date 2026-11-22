@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types scripts/test-leadrevive.mjs",
-    "test:e2e": "node scripts/e2e-api-test.mjs",
+    "test:api": "node scripts/e2e-api-test.mjs",
+    "test:playwright": "playwright test",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:playwright",
     "deploy:surge": "mv app/api ./_api_backup && next build && mv ./_api_backup app/api && cp out/app.html out/app/index.html && cp out/index.html out/200.html && npx surge out leadrevive.surge.sh"
   },
   "dependencies": {
@@ -22,6 +25,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
